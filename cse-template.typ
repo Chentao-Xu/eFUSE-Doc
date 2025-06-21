@@ -26,11 +26,12 @@
   abstract_en: [],
   keywords_zh: (),
   keywords_en: (),
-  school: "",
-  author: "",
-  id: "",
-  mentor: "",
-  class: "",
+  team_name: "",
+  comp_name: "",
+  team_mates: "",
+  school_mentor: "",
+  comp_mentor: "",
+  school_name: "",
   date: (1926, 8, 17),
   body,
 ) = {
@@ -43,7 +44,7 @@
   // 图表公式的序号
   show: _set_numbering
   // 参考文献
-  show: _set_references.with(csl_style: "hust-cse-ug.csl")
+  show: _set_references
   // 修复缩进
   show: _fix_indent
   // 整体页面设置
@@ -54,20 +55,9 @@
   /* 封面与原创性声明 */
 
   // 封面
-  paper_cover(cover_logo_path: "../assets/cse-hust.png", 
-    anonymous, title, school, class, author, id, mentor, date
+  paper_cover(cover_logo_path: "../assets/hitsz-logo.jpg", 
+    anonymous, title, team_name, comp_name, team_mates, school_mentor, comp_mentor, school_name, date
   )
-
-  // 原创性声明
-  declaration(anonymous: anonymous)
-
-  // 原创性声明与摘要间的空页
-  pagebreak()
-  counter(page).update(0)
-
-  // 进入下一部分
-  pagebreak()
-  counter(page).update(1)
 
   /* 目录与摘要 */
 
@@ -79,12 +69,7 @@
   show: _set_paper_page_par
 
   // 摘要
-  zh_abstract_page(abstract_zh, keywords: keywords_zh)
-
-  pagebreak()
-
-  // abstract
-  en_abstract_page(abstract_en, keywords: keywords_en)
+  zh_abstract_page(abstract_zh)
 
   pagebreak()
 

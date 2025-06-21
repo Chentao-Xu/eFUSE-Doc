@@ -2,7 +2,7 @@
 
 #import "../fonts/font-def.typ": *
 
-#let paper_cover(cover_logo_path: "../assets/cse-hust.png", anonymous, title, school, class, author, id, mentor, date) = {
+#let paper_cover(cover_logo_path: "../assets/cse-hust.png", anonymous, title, team_name, comp_name, team_mates, school_mentor, comp_mentor, school_name, date) = {
   align(center)[
     // hust logo
     #v(20pt)
@@ -13,7 +13,7 @@
     } else {
       "../assets/black.png"
     }
-    #image(logo_path, width: 55%, height: 7%)
+    #image(logo_path)
 
     #v(40pt)
 
@@ -21,7 +21,7 @@
       size: 36pt,
       font: zhongsong,
       weight: "bold"
-    )[本科生毕业设计(论文)]
+    )[eFUSE设计开发文档]
 
     #v(40pt)
 
@@ -32,7 +32,7 @@
       #title
     ]
 
-    #v(80pt)
+    #v(100pt)
 
     #let info_value(body) = {
       rect(
@@ -62,19 +62,21 @@
     }
 
     #grid(
-      columns: (70pt, 180pt),
-      rows: (40pt, 40pt),
+      columns: (70pt, 200pt),
+      rows: (30pt, 30pt),
       gutter: 3pt,
-      info_key("院　　系"),
-      info_value(if not anonymous { school } else { "██████████" }),
-      info_key("专业班级"),
-      info_value(if not anonymous { class } else { "██████████" }),
-      info_key("姓　　名"),
-      info_value(if not anonymous { author } else { "██████████" }),
-      info_key("学　　号"),
-      info_value(if not anonymous { id } else { "██████████" }),
-      info_key("指导教师"),
-      info_value(if not anonymous { mentor } else { "██████████" }),
+      info_key("队伍名称"),
+      info_value(if not anonymous { team_name } else { "██████████" }),
+      info_key("所属赛题"),
+      info_value(if not anonymous { comp_name } else { "██████████" }),
+      info_key("项目成员"),
+      info_value(if not anonymous { team_mates } else { "██████████" }),
+      info_key("院内导师"),
+      info_value(if not anonymous { school_mentor } else { "██████████" }),
+      info_key("项目导师"),
+      info_value(if not anonymous { comp_mentor } else { "██████████" }),
+      info_key("所属高校"),
+      info_value(if not anonymous { school_name } else { "██████████" }),
     )
 
     #v(30pt)
@@ -82,7 +84,7 @@
       font: zhongsong,
       size: 16pt,
     )[
-      #date.at(0) 年 #date.at(1) 月 #date.at(2) 日
+      #date.at(0) 年 #date.at(1) 月
     ]
     #pagebreak()
   ]

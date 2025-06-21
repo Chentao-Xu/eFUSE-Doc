@@ -1,5 +1,4 @@
-// #import "cs-template.typ": *
-#import "master-exam-template.typ": *
+#import "cse-template.typ": *
 #import "@preview/codelst:2.0.2": sourcecode
 #show: setup-lovelace
 
@@ -9,23 +8,31 @@
 
 #show: project.with(
   anonymous: false,
-  author: "你的名字",
-  grade: "你的年级",
-  kind: "报告",
-  id: "M2024xxxxx",
-  course: "这门课",
-  date: (2024, 12, 30),
-  abstract: [先帝创业未半而中道崩殂，今天下三分，益州疲弊，此诚危急存亡之秋也。然侍卫之臣不懈于内，忠志之士忘身于外者，盖追先帝之殊遇，欲报之于陛下也。诚宜开张圣听，以光先帝遗德，恢弘志士之气，不宜妄自菲薄，引喻失义，以塞忠谏之路也。
+  title: "基于eBPF加速的高性能用户态文件系统",
+  abstract_zh: [
+  先帝创业未半而中道崩殂，今天下三分，益州疲弊，此诚危急存亡之秋也。然侍卫之臣不懈于内，忠志之士忘身于外者，盖追先帝之殊遇，欲报之于陛下也。诚宜开张圣听，以光先帝遗德，恢弘志士之气，不宜妄自菲薄，引喻失义，以塞忠谏之路也。
 
-  宫中府中，俱为一体；陟罚臧否，不宜异同。若有作奸犯科及为忠善者，宜付有司论其刑赏，以昭陛下平明之理，不宜偏私，使内外异法也。],
-  keywords:("Something", "Something else")
+  宫中府中，俱为一体；陟罚臧否，不宜异同。若有作奸犯科及为忠善者，宜付有司论其刑赏，以昭陛下平明之理，不宜偏私，使内外异法也。
+  - 
+  ],
+  abstract_en: [
+  The founding emperor passed away before his endeavor was half completed, and now the empire is divided into three parts. Yizhou is exhausted and in decline, and this is truly a critical moment of survival or destruction. However, the palace guards are tirelessly serving within, and loyal subjects are sacrificing themselves outside, all in order to repay the late emperor's kindness and show loyalty to the current emperor. It is appropriate to listen to wise advice, to honor the late emperor's virtues, to inspire the courage of loyal subjects, and not to belittle oneself or distort the truth, in order to keep the path of loyal counsel open. 
+
+  The palace and government are one entity, and punishments should be consistent. If there are those who commit crimes or show loyalty and virtue, they should be judged by the legal system to demonstrate your fairness as emperor, rather than showing partiality that would create different laws for those inside and outside the palace.
+  ],
+  team_name: "FastPoke",
+  team_mates: "许辰涛、冯可逸、赵胜杰",
+  school_name: "哈尔滨工业大学（深圳）",
+  comp_name: "proj289",
+  school_mentor: "夏文、李诗逸",
+  comp_mentor: "郑昱笙",
+  date: (2025, 6)
 )
 
 
 = 绪论
 
 == typst 介绍
-
 
 typst 是最新最热的标记文本语言，定位与 LaTeX 类似，具有极强的排版能力，通过一定的语法写文档，然后生成 pdf 文件。与 LaTeX 相比有以下的优势：
 
@@ -305,9 +312,7 @@ a4纸，上下空2.5cm，左右空3cm
 
 #pagebreak()
 #acknowledgement()[
-
-*特别注意：研究生课程报告中致谢不是必须的！！！把这个函数删除就不会出现这一页了。*
-
+  
 完成本篇论文之际，我要向许多人表达我的感激之情。
 
 首先，我要感谢我的指导教师，他/她对本文提供的宝贵建议和指导。所有这些支持和指导都是无私的，而且让我受益匪浅。
