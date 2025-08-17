@@ -12,55 +12,80 @@
   abstract_zh: [
   FUSE（Filesystem in Userspace）是目前广受欢迎的一个用户态文件系统框架，但FUSE在高频负载场景下受限于频繁的用户态/内核态切换和请求提交时的锁争用，性能表现不佳。
 
-  为此，我们提出eFuse，一个结合eBPF技术的FUSE性能优化方案。其中包括通过eBPF map实现文件元数据和文件内容在内核中的缓存，在内核eBPF程序中对FUSE请求快速处理，设计更为合理的内核请求队列结构。优化请求处理和调度管理，提升各个负载场景下FUSE的性能和可扩展性，初赛阶段性能提升约3倍。上述设计不改变原本FUSE的架构和接口标准，能够实现对现有FUSE的完全兼容。
+  为此，我们提出eFuse，一个结合eBPF技术的FUSE性能优化方案，尝试在FUSE工作流程中的各个环节着手优化。其中包括*通过eBPF map实现文件元数据和文件内容在内核中的缓存*，*在内核eBPF程序中对FUSE请求快速处理*，*设计更为合理的内核请求队列结构*，*优化请求处理和调度管理*，*IO堆栈智能调度*。提升各个负载场景下FUSE的性能和可扩展性，相比原始FUSE，*IOPS和吞吐量等读写性能提升约3 \~ 5倍*，*请求的排队时延显著降低*。
+  
+  上述设计和功能实现不改变原本FUSE的架构和接口标准，*能够实现对现有FUSE的完全兼容*，*适配所有的基于FUSE实现的用户态文件系统*，简单易用。同时由于eBPF的可编程性，用户可以在不更改内核代码的情况下自定义各个FUSE请求对应的eBPF程序处理逻辑，*具有良好的扩展性和灵活性*。
 
-  我们设计五大技术目标模块以及目前完成情况如下：
+  我们设计六大技术目标模块以及目前完成情况如下：
 
   - *目标1：FUSE内核模块扩展*
   - *目标2：FUSE元数据请求优化*
   - *目标3：FUSE I/O请求的特殊优化*
   - *目标4：基于内核修改的多核优化*
   - *目标5：负载监控与请求均衡*
+  - *目标6：I/O堆栈层面优化*
 
 #figure(
   table(
     columns: (68pt,68pt, 285pt),
-    inset: 10pt,
+    inset: 7pt,
     stroke: 0.7pt,
     align: horizon,
     [*目标编号*], [*完成情况*], [*说明*],
     [*1*], [100%],
     align(left)[
-      1. 完成对FUSE内核模块的扩展。 
-      2. 后续可能随着需求变化，进一步扩展。
+      1. 在内核中设置eBPF程序挂载点。
+      2. 设计并实现eBPF helper函数，助于后续实现。
+      3. 完成项目框架内核态和用户态的协同开发。
     ],
     [*2*],[100%],
     align(left)[
       1. 通过eBPF在内核快速处理FUSE请求。
       2. 优化 inode、目录、权限、路径等相关操作。
-    ],
+      3. 对用户态文件系统作相关处理。
+    ]
+    )
+) <tbl1>
+#figure(
+  table(
+    columns: (68pt,68pt, 285pt),
+    inset: 7pt,
+    stroke: 0.7pt,
+    align: horizon,
+    [*目标编号*], [*完成情况*], [*说明*],
     [*3*],[100%],
     align(left)[
-      1. 针对文件I/O请求的页数优化
-      2. 读写性能提升 1.5\~3 倍，平均延迟显著降低。
-    ],
-    [*4*],[80%],
+      1. 针对文件I/O请求的绕过优化。
+      2. 对READ操作设计直通路径和map缓存路径。
+      3. 读写性能提升 2\~4 倍，平均延迟显著降低。
+    ],  
+    [*4*],[100%],
     align(left)[
       1. 为每个核心构建独立 ringbuf 管道。
-      2. 实现多核 CPU 环境的适配。
+      2. 实现多核环境的适配、高效的请求传输。
+      3. 在高负载工作场景下大幅减小请求的排队时延。
     ],
-    [*5*],[20%],
+    [*5*],[100%],
     align(left)[
-      1. 利用 eBPF 动态分析请求负载并进行策略调整。
+      1. 动态分析请求负载并进行策略调整。
+      2. 相关功能可在内核实现或通过eBPF程序实现。
     ],
-    [*总计*],[80%],
+    [*6*],[100%],
     align(left)[
-      1. 完成对FUSE请求处理路径、调度管理的优化。
-      2. 实现对FUSE工作性能的大幅提升。
-      3. 将持续完善现有工作并考虑新增其他优化模块。
+      1. 实现设备端路径，在设备中完成FUSE请求。
+      2. 实现设备端和内核端的调度策略。
+    ],
+    [*总计*],[100%],
+    align(left)[
+      1. 能够大幅降低工作中的内核/用户态切换次数。
+      2. 高负载场景下请求排队时延显著降低。
+      3. 吞吐率、读写性能显著提升，提升2 \~ 4 倍。
+      4. 扩展性良好、用户可自由更改eBPF工作逻辑。
     ]
   )
 ) <tbl1>
+
+
 
   ],
   team_name: "FastPoke",
@@ -96,7 +121,7 @@ eFUSE 是一个尝试将 eBPF 深度集成到 FUSE 文件系统中的创新项�
 
 == 行动项
 
-为实现上述目标，进一步将本项目分为五大技术目标模块：
+为实现上述目标，进一步将本项目分为六大技术目标模块：
 
 #figure(
   table(
@@ -138,14 +163,22 @@ eFUSE 是一个尝试将 eBPF 深度集成到 FUSE 文件系统中的创新项�
     [目标5\
     负载监控与请求均衡],
     align(left)[
-      1. 利用 eBPF 动态分析请求负载。
+      1. 动态分析请求负载。
       2. 根据 ringbuf 状态进行调度策略调整。
       3. 针对不同的负载情况实现合理的请求分配。
-    ]
+    ],
+    [目标6\
+    I/O堆栈层面优化],
+    align(left)[
+      1. 仿真实现具有内部计算能力的存储设备。
+      2. 在某些场景下尝试将计算下放给设备。
+      3. 实现设备端和内核段的智能调度选择。
+    ],
   ),
   caption: "目标技术模块"
 ) <tbl1>
 
+#pagebreak()
 我们将上述目标拆分为以下若干行动项：
 
 
@@ -171,9 +204,17 @@ eFUSE 是一个尝试将 eBPF 深度集成到 FUSE 文件系统中的创新项�
 
 - 行动项11：为 FUSE 内核设计更为合理的请求队列数据结构。
 
-- 行动项12：通过 eBPF 实现对请求队列的负载监控和请求均衡。
+- 行动项12：实现对请求队列的负载监控和请求均衡。
 
-- 行动项13：模拟常见的负载场景并进行性能评估。
+- 行动项13：仿真实现具有内部计算能力的 CSD 存储设备。
+
+- 行动项14：在系统内核中为 FUSE 请求添加设备路径，实现计算下移。
+
+- 行动项15：在系统内核中为传统路径和新增的设备路径实现调度算法。
+
+- 行动项16：模拟常见的负载场景，在虚拟机中进行性能评估。
+
+- 行动项17：在物理机中进行负载测试，得到真实性能结果。
 
 == 完成情况
 
@@ -212,10 +253,19 @@ eFUSE 是一个尝试将 eBPF 深度集成到 FUSE 文件系统中的创新项�
 - 行动项11 （完成）:在多核环境下为每个核心分配环形管道，代替原先的请求队列。
 
 
-- 行动项12 （进行中）
+- 行动项12 （完成）:实现请求队列的负载监控和请求均衡，提升多核环境下的请求处理效率。
 
 
-- 行动项13 （基本完成）:设计模拟常见的负载场景测试。
+- 行动项13 （完成）:完成支持内部计算能力的 CSD 存储设备仿真。
+
+- 行动项14 （完成）:内核中新增 FUSE 请求设备路径，在仿真设备中完成计算并返回。
+
+- 行动项15 （完成）:新增 I/O 堆栈调度策略模块，更具请求类型、当前设备负载、先前请求情况选择路径。
+
+- 行动项16 （完成）:设计典型常见的负载常见，在虚拟机中进行初步评估。
+
+- 行动项17 （完成）:在福利及上进行真实负载测试，验证性能提升。
+
 
 == 开发历程
 
@@ -235,6 +285,18 @@ eFUSE 是一个尝试将 eBPF 深度集成到 FUSE 文件系统中的创新项�
       4. 收集近些年有关FUSE性能优化的相关工作。
       5. 初步搭建虚拟机开发环境，选择基于的内核版本。
     ],
+      
+  ),
+  caption: "开发历程表"
+) <tbl1>
+
+#figure(
+  table(
+    columns: (100pt, 320pt),
+    inset: 10pt,
+    stroke: 0.7pt,
+    align: left,
+    [*日期*], [*开发内容*],
     [*3.13 - 3.26*], [
       1. 调研ExtFUSE、RFUSE等相关研究。
       2. 阅读FUSE优化相关论文，阅读相关开源项目代码。
@@ -244,6 +306,7 @@ eFUSE 是一个尝试将 eBPF 深度集成到 FUSE 文件系统中的创新项�
       6. 阅读lanbda-io论文，了解计算存储和eBPF扩展优化。
       7. 初步确定三大优化方向。
     ],
+    
     [*3.27 - 4.9*], [
       1. 根据后续接口需要修改libfuse库。
       2. 整理代码框架，搭建项目代码仓库。
@@ -256,18 +319,6 @@ eFUSE 是一个尝试将 eBPF 深度集成到 FUSE 文件系统中的创新项�
       2. 使用eBPF map实现数据在内核eBPF程序中的缓存。
       3. 对目前现有的问题进行debug。
     ],
-    
-    
-  ),
-  caption: "开发历程表"
-) <tbl1>
-
-#figure(
-  table(
-    columns: (100pt, 320pt),
-    inset: 10pt,
-    stroke: 0.7pt,
-    align: left,
     [*4.24 - 5.14*], [
       1. 尝试初步实现部分FUSE请求的绕过操作
       2. 使用eBPF map实现数据在内核eBPF程序中的缓存。
@@ -286,6 +337,16 @@ eFUSE 是一个尝试将 eBPF 深度集成到 FUSE 文件系统中的创新项�
       3. 为直通路径设计实现设计并注册eBPF helper函数。
       4. 针对基于的用户态文件系统做协调修改，维护map。
     ],
+      ),
+  caption: "开发历程表"
+) <tbl1>
+#figure(
+  table(
+    columns: (100pt, 320pt),
+    inset: 10pt,
+    stroke: 0.7pt,
+    align: left,
+    [*日期*], [*开发内容*],
     [*6.5 - 6.18*], [
       1. 完成直通路径和map缓存路径的实现。
       2. 基于两条绕过路径，设计并实现绕过算法。
@@ -299,6 +360,29 @@ eFUSE 是一个尝试将 eBPF 深度集成到 FUSE 文件系统中的创新项�
       4. 设计三种常见的模拟负载场景，进行综合性能测试。
       5. 进行撰写文档、完善仓库等初赛准备工作。
     ],
+    [*7.1 - 7.9*], [
+      1. 等待初赛结果。
+      2. 商讨后续决赛阶段开发目标和工作。
+    ],
+    [*7.10 - 7.23*], [
+      1. 确定并完成针对I/O堆栈方向的大致优化框架。
+      2. 对linux内核进行修改，完成多核优化模块的适配。
+      3. 对libfuse库进行修改，完成多核优化模块的适配。
+      4. 将多核优化模块并入主项目，进行阶段性测试。
+    ],
+    [*7.24 - 8.6*], [
+      1. 仿真实现具有内部计算能力的存储设备。
+      2. 在系统内核中为 FUSE 请求添加设备路径。
+      3. 为新增的设备路径实现调度算法。
+      4. 实现多核优化模块和eBPF程序的协同工作。
+    ],
+    [*8.7 - 8.17*], [
+      1. 最后整理决赛代码，确认并上传至平台。
+      2. 进行决赛阶段的综合性能测试。
+      3. 搭建等价的物理机环境，进行真实负载测试。
+      4. 准备决赛阶段的展示材料。
+      5. 进行决赛阶段的文档撰写、PPT制作等工作。
+    ],
   ),
 ) <tbl1>
 
@@ -306,7 +390,7 @@ eFUSE 是一个尝试将 eBPF 深度集成到 FUSE 文件系统中的创新项�
 
 == 团队分工
 
-在初赛阶段，我们团队的分工如下：
+我们团队的分工如下：
 
 #figure(
   table(
@@ -316,18 +400,25 @@ eFUSE 是一个尝试将 eBPF 深度集成到 FUSE 文件系统中的创新项�
     align: left,
     [*姓名*], [*分工内容*],
     [许辰涛], [
+      - 开发环境搭建
       - 调研现有 FUSE 优化方案
       - eBPF 开发技术栈学习
       - 项目仓库与依赖子仓库搭建
       - ExtFUSE的Linux内核移植
       - 将libfuse适配eFUSE
+      - 整体优化方案设计
+      - 文档撰写
     ],
     [冯可逸], [
       - 开发环境搭建
       - eBPF开发技术栈学习
+      - 设计并实现eBPF helper函数
       - 使用eBPF实现FUSE请求绕过
       - FUSE I/O 缓存/直通 实现
-      - 初赛阶段综合性测试
+      - CSD 存算一体设备仿真
+      - I/O 堆栈调度算法设计和实现
+      - 虚拟机和物理机综合测试
+      - 文档撰写
     ],
     [赵胜杰], [
       - 理解rfuse算法思想和代码架构
@@ -335,7 +426,9 @@ eFUSE 是一个尝试将 eBPF 深度集成到 FUSE 文件系统中的创新项�
       - 复现rfuse项目
       - 在6.5.0内核上修改内核fuse模块
       - 修改用户库libfuse整合rfuse和extfuse
-
+      - eFuse多核优化模块实现
+      - 实现内核中多核优化模块对eBPF的适配
+      - 文档撰写
     ],
   ),
   caption: "团队分工表"
@@ -417,10 +510,10 @@ eFuse的核心设计理念为：
   gutter: 1cm,
   align: center,
   figure(image("assets/fuse.png", height: 4.5cm), caption: "FUSE工作流程示意图"),
-  figure(image("assets/efuse.png", height: 4.5cm), caption: "eFuse工作流程示意图"),
+  figure(image("assets/efuse_new.png", height: 4.5cm), caption: "eFuse工作流程示意图"),
 )
 
-与原始FUSE工作流程相比，eFuse在内核态对FUSE内核驱动进行了针对性的改造和扩展，同时新增eBPF模块，设置eBPF挂载点和eBPF程序，从而提升FUSE请求的处理效率和可扩展性。eFuse核心设计架构包括以下几个关键部分：
+与原始FUSE工作流程相比，eFuse在FUSE工作流程中的各个阶段都，进行了优化处理。eFuse在内核态对FUSE内核驱动进行了针对性的改造和扩展，同时新增eBPF模块，设置eBPF挂载点和eBPF程序，从而提升FUSE请求的处理效率和可扩展性。此外，为适配现代新型存储系统架构，eFuse尝试将部分计算下放到存算一体设备处理。eFuse核心设计架构包括以下几个关键部分：
 
 - *eBPF程序*
 
@@ -1618,11 +1711,302 @@ out:
 }
 ```]
 
+=== 参数空间复用设计
+
+在 eFuse 的设计中，struct efuse_req的 args字段（112 字节固定空间）与动态参数缓冲区（efuse_arg \*karg）共同构成了*​​双层参数存储机制*​，能使得*传递延迟降低*。
+
+#sourcecode[```c
+struct efuse_req {
+    // ...
+    struct {
+        uint8_t argument_space[112]; // 固定 112 字节
+    } args;
+    // ...
+};
+
+struct efuse_iqueue {
+    struct efuse_arg *karg; // 动态参数缓冲区池
+    // ...
+};
+```]
+
+- 小参数高效内联存储​​
+
+  零分配开销​​：当请求参数不超过 112 字节时，直接嵌入 req->args，无需额外内存分配。
+
+  缓存局部性​​：参数与请求头位于同一内存页，减少 CPU 缓存未命中（Cache Miss）。
+
+- 大参数动态扩展​
+
+  *按需分配*:当参数大于 112 字节时，通过位图分配器从 karg池获取缓冲区。
+
+  *索引化引用​​*:请求头通过 in.arg[0]存储缓冲区索引而非指针：
+
+
+
+#sourcecode[```c
+uint32_t efuse_get_argument_buffer(struct fuse_mount *fm, int riq_id) {
+    // 使用位图在 karg 池中分配槽位
+}
+
+struct {
+    uint32_t arg[2];    // 动态缓冲区索引
+    uint32_t arglen[2]; // 参数长度
+} in;
+```]
+
+=== 动态缓冲区的核心优势
+
+#figure(
+  image("assets/动态缓冲区.png", height: 8.5cm),
+  caption: "动态缓冲区示意图",
+) <img1>
+
+- *零拷贝进程间*
+
+  传递​物理内存共享​​：karg池通过 mmap映射到用户态：mmap处理中，根据mmap的偏移量（pgoff）解析出要映射的队列类型（如RFUSE_PENDING、RFUSE_ARG等）以及目标rfuse_iqueue的ID（riq_id），将对应的内核缓冲区地址（如riq->pending.kaddr）返回给用户空间，用户空间就可以直接访问这些内存区域。从而内核-用户直通​​：FUSE daemon 直接读写 karg物理页，避免 copy_to_user开销。
+
+- *批量化操作支持*​
+  
+  ​​批量读取​​：单个 readv可处理多个请求的大参数（如 FUSE_READDIR+ 目录项）。
+
+#figure(
+  image("assets/批量处理.png", height: 6.5cm),
+  caption: "批量处理流程",
+) <img1>
+
+== 负载监控与请求均衡
+
+#figure(
+  image("assets/拥塞检测.png", height: 8cm),
+  caption: "负载监控与请求均衡示意图",
+) <img1>
+
+原生fuse线程>16时吞吐量停滞主要原因为单队列锁争用。负载均衡机制主要针对​​突发性异步请求​​（如预读、写回）可能导致单个环形通道过载的问题而设计，通过动态分配请求到不同通道来提升整体吞吐量。*避免单点瓶颈​，零拷贝迁移，请求迁移仅传递​​头部缓冲区索引​​，无需复制数据*。
+#sourcecode[```c
+struct efuse_bg_entry {
+  struct list_head list;
+  uint32_t request; // 头部缓冲区索引
+  int32_t riq_id;   // 目标通道ID
+};
+```]
+- *负载均衡触发条件*​​
+
+当满足以下任一条件时，EFUSE启动负载均衡：
+
+*​​背景队列溢出​​*：
+
+异步请求数量超过max_background（默认值基于内存动态计算），触发riq->blocked = 1。
+
+​​*工作线程阻塞​​*：
+
+环形通道的工作线程因长时操作（如FSYNC）进入睡眠，导致请求处理延迟。
+
+- *异步请求重定向​*
+
+  当检测到当前环形通道拥塞时，efuse_get_iqueue_for_async让异步请求会被​​轮询分配到其他空闲通道具体实现为
+#sourcecode[```c
+id = select_round_robin(fc); // 轮询选择下一个通道ID
+return fc->riq[id];
+```]
+
+*随机优化​*​，若轮询后仍拥塞，EFUSE随机选择其他通道（最多尝试10次）：
+#sourcecode[```c
+for(i=0; i<10; i++) {
+  get_random_bytes(&tmp, sizeof(tmp)-1);
+  id = tmp % EFUSE_NUM_IQUEUE; // 随机通道ID
+  if(!fc->riq[id]->num_sync_sleeping) break; // 选择非阻塞通道
+}
+```]
+
+- *请求迁移流程​*
+
+  *从背景队列取出请求*​​：
+
+  efuse_flush_bg_queue通过list_del(&bg_entry->list)移除原通道的异步请求。
+
+  *投递到新通道​*​：
+
+  调用efuse_queue_request()将请求加入目标通道的挂起队列（pending环形缓冲区）。
+
+  *更新统计*​​：
+
+  efuse_request_queue_background使得目标通道的active_background增加，原通道的num_background减少。
+
+
+== I/O堆栈层面优化
+
+=== 模块背景
+
+计算存储设备（Computational Storage Device，CSD）是一类在存储硬件中集成计算能力的新型存储系统架构。与传统存储设备仅提供数据读写功能不同，CSD 能在设备端直接对数据进行预处理或计算，从而减少主机与存储之间的大规模数据传输，降低主机 CPU 占用，并提升整体系统吞吐率。在 CSD 架构下，数据处理既可以在设备端完成，也可以在主机内核端执行，不同路径在延迟、带宽占用和计算开销等方面各有优势。
+
+在初赛阶段，我们构思的优化方案已经覆盖 FUSE 请求处理流程中的绝大多部分，为了进一步探求 FUSE 的性能上限，同时适配现代新型存储系统架构，我们尝试从 I/O 堆栈的层面对 FUSE 性能作进一步优化。在当前系统存在相关 CSD 存储设备的情况下，在调度算法的帮助下，eFuse 会尝试将部分计算需求转移到设备端而非原本的内核路径。
+
+在具体应用场景中，设备端与内核端处理路径的选择需要根据数据规模、计算复杂度、I/O 模式等多种因素动态调整。固定路径的处理模式往往难以兼顾延迟和吞吐性能，甚至可能在某些场景下造成性能退化。因此，还需要引入路径调度机制，根据实时运行状况和任务特征，将请求合理分配到设备端或内核端执行，从而在性能与资源利用率之间取得平衡。
+
+
+=== 模块实现
+
+#figure(
+  image("assets/iostack.png", height: 11.5cm),
+  caption: "I/O堆栈优化模块工作流程图",
+) <img1>
+
+=== 执行路径机制
+
+首先对 FUSE 请求的处理路径进行封装，分为 CSD 设备端处理和原本的内核端处理两条路径。
+
+- 设备端执行路径
+
+请求被直接发送至仿真 CSD 的设备端计算模块，由其完成数据处理和结果生成，并返回给主机端，从而不需要进入内核之后的工作流程中。
+
+#sourcecode[```c
+ssize_t do_dev(size_t file_size, loff_t *pos, size_t size, struct iov_iter *to)
+{
+  char *kbuf;
+  ssize_t ret;
+
+  if (!csd_sim_file) {
+      pr_err("CSD_SIM: backing file not opened\n");
+      return -EINVAL;
+  } 
+
+	size_t read_size = size < (file_size - *pos) ? size : (file_size - *pos);
+
+  kbuf = kmalloc(read_size, GFP_KERNEL);
+  if (!kbuf) {
+    return -ENOMEM;
+	}
+
+	if (*pos >= file_size) {
+		// pr_info("CSD_SIM: reached simulated EOF\n");
+		return 0;
+	}
+
+  ret = csd_sim_read(csd_sim_file, kbuf, size, pos);
+  if (ret < 0) {
+      pr_err("CSD_SIM: kernel_read failed %zd\n", ret);
+      goto out;
+  }
+
+  // 拷贝数据给用户空间
+  if (copy_to_iter(kbuf, ret, to) != ret) {
+      pr_err("CSD_SIM: copy_to_iter failed\n");
+      ret = -EFAULT;
+      goto out;
+  }
+
+out:
+  kfree(kbuf);
+  return ret;
+}
+```]
+
+- 内核端执行路径
+
+即原本的 FUSE 逻辑，进入 eFuse Driver，由主机内核端的处理模块执行。
+
+#sourcecode[```c
+static ssize_t try_internal_read(struct file *file2, 
+                                 struct fuse_mount *fm,
+                                 struct fuse_args *args, 
+                                 struct iov_iter *to,
+                                 size_t count, 
+                                 struct kiocb *iocb)
+{
+	void *bpf_output_buf = kzalloc(count, GFP_KERNEL);
+	if (!bpf_output_buf)
+		return -ENOMEM;
+
+	args->out_args[0].size = count;
+	args->out_args[0].value = bpf_output_buf;
+	args->out_numargs = 1;
+
+	ssize_t ret = fuse_read_request(fm, args);
+	if (ret >= 0) {
+		void *data = args->out_args[0].value;
+		size_t data_size = args->out_args[0].size;
+		if (data && data_size > 0) {
+			ssize_t copied = copy_to_iter(data, data_size, to);
+			// pr_info("EFUSE read: copied %zd bytes from BPF to user\n", copied);
+			iocb->ki_pos += copied;
+			kfree(bpf_output_buf);
+			return copied;
+		} else {
+			// pr_info("EFUSE read: BPF returned no data\n");
+			kfree(bpf_output_buf);
+			return 0;
+		}
+	}
+	kfree(bpf_output_buf);
+	return ret;
+}
+```]
+
+=== 执行路径调度
+
+在调度器接收到上层传递的 I/O 请求后，首先解析请求的关键信息，包括数据块大小、请求类型（读/写/计算）等信息。结合存储的先前的几次相同操作的运行时长，估计得到设备端存储时延、设备端计算时延、内核段执行时延，通过比较内核段时延和设备端存储时延+计算时延的大小，决定该请求应在设备端还是内核端执行。
+
+#sourcecode[```c
+    // Check if need to reprobe
+		bool start_new_probe = false;
+		if (prof->prof_done && req_id >= prof->last_profile_start + PROF_ITERS + REPROBE_INTERVAL) {
+			prof->prof_done = false;
+			prof->last_profile_start = req_id;
+			start_new_probe = true;
+		}
+
+		// Check if in profiling stage
+		bool is_profile = !prof->prof_done && req_id < prof->last_profile_start + PROF_ITERS;
+
+		if (is_profile) {
+			int index = (req_id - prof->last_profile_start < HALF_PROF_ITERS)
+	            ? req_id - prof->last_profile_start
+	            : req_id - prof->last_profile_start - HALF_PROF_ITERS;
+			start = ktime_get_ns();
+
+			if (req_id < HALF_PROF_ITERS) {
+				ret = do_dev(file_size, &pos, count, to);
+				delta = ktime_get_ns() - start;
+				prof->dev_time[index] = (ret < 0) ? U64_MAX : delta;
+				if (ret >= 0) {
+					iocb->ki_pos += ret;  // do_dev 更新 offset
+				}
+			} else {
+				ret = try_internal_read(file2, fm, args, to, count, iocb);
+				delta = ktime_get_ns() - start;
+				prof->kern_time[index] = (ret < 0) ? U64_MAX : delta;
+			}
+
+			// profiling 结束判断
+			if (req_id == prof->last_profile_start + PROF_ITERS - 1) {
+				u64 sum_dev = 0, sum_kern = 0, cnt = 0;
+				for (int i = 0; i < HALF_PROF_ITERS; i++) {
+					if (prof->dev_time[i] != U64_MAX && prof->kern_time[i] != U64_MAX) {
+						sum_dev += prof->dev_time[i];
+						sum_kern += prof->kern_time[i];
+						cnt++;
+					}
+				}
+				if (cnt > 0) {
+					prof->avg_dev_time = div64_u64(sum_dev, cnt);
+					prof->avg_kern_time = div64_u64(sum_kern, cnt);
+				}
+				prof->prof_done = true;
+			}
+
+			kfree(ia);
+			if (ret < 0)
+				goto fallback;
+			return ret;
+		}
+```]
+
 #pagebreak()
 
 = 性能测试
 
-== 综合性能测试
+== 虚拟机初步测试
 
 === 测试方法
 
@@ -1646,38 +2030,64 @@ out:
 
 以上三组场景均采用*读写比7:3*的随机读写操作进行测试，贴合实际应用负载，通过比较IOPS、读写吞吐量、平均延迟以及延迟抖动等性能指标，能够综合评估eFuse在不同负载下的性能表现。
 
-本测试以 原始 FUSE 和 其他相关项目 ExtFUSE 作为性能参照，性能测试基于简易用户态文件系统 StackFS。
+本测试以 原始 FUSE、其他相关项目 ExtFUSE、内核态文件系统 EXT4 以及我们初赛阶段的 eFuse 作为性能参照，性能测试基于简易用户态文件系统 StackFS。
+
 其中，ExtFUSE是与本项目类似的其他开源研究，同样旨在利用 eBPF 对 FUSE 的性能做优化，我们尝试对其进行复现，并进行相关测试和对比。
 
 #pagebreak()
 === 测试结果
 
 #figure(
-  image("assets/iops.png", height: 6.9cm),
-  caption: "随机读写 IOPS 测试结果",
+  image("assets/测试1.png", height: 6.9cm),
+  caption: "随机读写IOPS测试结果",
 ) <img1>
 
 #figure(
-  image("assets/吞吐.png", height: 6.9cm),
+  image("assets/测试2.png", height: 6.9cm),
   caption: "随机读写吞吐量测试结果",
 ) <img1>
 
 #figure(
-  image("assets/延迟.png", height: 6.9cm),
-  caption: "随机读写平均延迟测试结果",
+  image("assets/测试3.png", height: 6.9cm),
+  caption: "随机读写平均排队延迟测试结果",
+) <img1>
+
+#figure(
+  image("assets/测试4.png", height: 6.9cm),
+  caption: "随机读写平均处理延迟测试结果",
 ) <img1>
 
 === 测试结果分析
 
 从测试结果可以看出，eFuse在全部三类负载场景下相比FUSE和ExtFUSE均有显著的性能提升。
 
-在*负载测试2*（多个小文件的随机读写）中和*负载测试3*（多个大文件的分散式随机读写）中，eFuse完全发挥出eBPF map缓存并绕过路径的优势，IOPS和吞吐量均有显著提升，提升约3倍，平均延迟和延迟抖动也明显降低。
+在*负载测试2*（多个小文件的随机读写）中和*负载测试3*（多个大文件的分散式随机读写）中，eFuse完全发挥出eBPF map缓存并绕过路径的优势，IOPS和吞吐量均有显著提升，*提升约3到4倍*，在 eBPF map 缓存路径的帮助下，*性能甚至超过了内核文件系统 EXT4*。
 
-在*负载测试1*（单个文件的小块随机读写）中，尽管由于连续对同一个文件进行操作，eBPF map的缓存命中率略有下降，但eFuse依旧凭借直通优化使请求响应速度答复领先于FUSE和ExtFUSE，IOPS和吞吐量提升约1.5倍，平均延迟和延迟抖动也有明显降低。
+在*负载测试1*（单个文件的小块随机读写）中，尽管由于连续对同一个文件进行操作，eBPF map的缓存命中率略有下降，但eFuse依旧凭借直通优化使请求响应速度答复领先于FUSE和ExtFUSE，*IOPS和吞吐量提升约1.5到2倍*。
 
-在写操作方面，受eBPF map更新以及同步开销的影响，在单文件负载下，eFuse的写性能略低于FUSE和ExtFUSE。但结合整体场景计算，这样的开销是完全值得的，吞吐量的提升弥补了这一开销，显示出综合性能的显著改善。
+在*多核优化模块*的影响下，可以看到*在三个测试环境下读写的平均排队延迟都显著下降*，由于我们在虚拟机中进行的初步测试负载的测试压力并不算大，平均排队延迟甚至能够逼近0，能够看出该优化方向在大压力负载下的巨大潜力。
 
-为进一步验证eFuse在更高性能目标下的潜力，我们还同时对*内核态文件系统EXT4*进行了测试。结果显示，eFuse在所有负载场景下均能逼近EXT4，在*负载测试2*（多个小文件的随机读写），eFuse借助eBPF map缓存和直通路径的优势，性能在改负载条件下已经超过EXT4，显示出eFuse在高性能文件系统场景下的巨大潜力。
+需要特别指出的是，由于需要维护 eBPF map 的正确性，在某些较极端的测试场景下（比如以写操作为主的测试场景），请求的平均延迟相比 FUSE 可能还会略有上升，但从综合性能和常见的负载常见来看，附加的维护成本完全被更快速的读操作和更低的总体延迟所抵消，维护 eBPF map 的性能代价是值得的，最终能够取得更佳的效果。
+
+同时，我们记录各个系统在测试过程中的*内核态/用户态切换次数*，以*负载测试1*（单个文件的小块随机读写）为例，可以明显看出*用户态文件系统绕过模块*的工作效果，具体数据如下：
+
+#figure(
+  table(
+    columns: (70pt, 70pt, 140pt),
+    inset: 6pt,
+    stroke: 0.5pt,
+    align: horizon,
+    [*文件系统*], [*切换次数*], [*说明*],
+    [*FUSE*], [169664], [基线],
+    [*ExtFUSE*], [105581], [相比 FUSE 降低约38%],
+    [*eFuse*], [78476], [相比 FUSE 降低约54%]
+  ),
+  caption: "内核态/用户态切换次数对比"
+) <tbl1>
+
+ExtFUSE 主要针对 FUSE 中的部分元数据请求做绕过处理，实现了 内核态/用户态切换次数 一定程度的下降。而 eFuse 对更多的元数据请求做了进一步优化处理，同时为更为复杂的 I/O 请求做特殊处理，进一步降低了 内核态/用户态切换次数，从而实现性能大幅优化的效果，符合预期。
+
+在多个负载测试下，eFuse 的性能都逼近 EXT4。在 负载测试2：多个小文件的随机读写混合测试 下，eFuse 表现优异，由于能够充分发挥 eBPF map 缓存路径的优势，性能一度超越 EXT4，显示出了 eFuse 在小文件场景的极强竞争力。
 
 #figure(
   table(
@@ -1694,71 +2104,156 @@ out:
   caption: "测试2下eFuse与EXT4性能对比"
 ) <tbl1>
 
-在其他场景下，eFuse整体性能虽略低于EXT4，但仍然表现出色，相比FUSE和ExtFUSE有明显提升。
-
 综合来看，eFuse在多个实际负载场景中表现出远超于FUSE和ExtFUSE的性能，尤其适合小文件、多元混合负载和高并发的场景，能够更好利用现在计算和存储硬件的能力，提供更高的I/O性能和更低的延迟。
 
 #pagebreak()
 
-= 总结与展望
+== 物理机综合测试
 
-eFuse在初赛阶段，已经实现绝大部分预期功能，包括对FUSE请求的绕过优化、环形管道设计等。通过对FUSE请求绕过、请求队列的优化，eFuse在多种负载场景下均表现出色，尤其在小文件和高并发场景下，性能提升显著。
+=== 综合测试介绍
 
-针对 *1.3: 行动项* 部分叙述的五大技术目标模块，在初赛阶段完成进度如下：
+我们在物理机中部署了等价的运行环境，在其中进行负载压力更大的相关测试，为了获得更为真实准确的测试结果。
+
+我们同样设计了三类典型的负载场景，具体参数指标如下：
 
 #figure(
   table(
-    columns: (110pt, 68pt, 250pt),
-    inset: 10pt,
+    columns: (75pt,100pt,100pt,140pt),
+    inset: 7pt,
     stroke: 0.7pt,
     align: horizon,
-    [*实现内容*], [*完成情况*], [*说明*],
-    [目标1：FUSE 内核模块扩展], 
-    [全部完成100%],
+    [*参数指标*], [*负载测试1*], [*负载测试2*],[*负载测试3*],
+    [模拟场景],[单文件随机读写],[小文件随机读写],[大文件随机读写],
+    [读写比例],[7:3],[7:3],[7:3],
+    [访问模式],[随机读写],[随机读写],[随机读写],
+    [读写块大小],[4K],[4K],[1M \ (eFuse测试组为512K)],
+    [读写总大小],[8M],[100M],[20G],
+    [文件数],[单文件],[50],[5],
+    [文件大小],[1G],[每个512K],[每个2G],
+    [任务数],[8],[16],[16],
+    [队列深度],[256],[256],[64],
+    [运行时间],[60s],[60s],[120s],
+    )
+) <tbl1>
+
+*存储设备采用 NVMe 固态硬盘，容量为 512GB，型号为 Hyundai 512G NVMe SSD。*
+
+需要特殊说明的是，由于 eBPF map 内能够存放的数据的大小限制，在 测试3 中，无法完成单次请求数据块大小为1M的操作，实际单次读写的数据块为512K，对后续测试结果可能有一定的负面影响，我们考虑在之后进一步解决 eFuse 无法单次处理大数据块的问题。
+
+#pagebreak()
+
+=== 测试结果
+
+部分测试结果图由于数据跨度较大，纵坐标采用对数刻度。
+
+#figure(
+  image("assets/测试5.png", height: 6.4cm),
+  caption: "综合测试IOPS测试结果",
+) <img1>
+
+#figure(
+  image("assets/测试6.png", height: 6.4cm),
+  caption: "综合测试吞吐量测试结果",
+) <img1>
+
+#figure(
+  image("assets/测试7.png", height: 6.4cm),
+  caption: "综合测试平均排队延迟测试结果",
+) <img1>
+
+#figure(
+  image("assets/测试8.png", height: 6.9cm),
+  caption: "综合测试平均处理延迟测试结果",
+) <img1>
+
+=== 测试结果分析
+
+在物理机测试环境下，进行了负载压力更大的性能测试，eFuse 在各个测试场景下的读写性能相较原版 FUSE 都有了大幅提升，基本完全超越内核态文件系统 EXT4。
+
+
+除去单次读写的数据块大小出现异常的 *测试3* 外，*测试1*和 *测试2*的读写单位都为小数据块（4K），IOPS 、读写吞吐量、读写操作的处理时延都能够实现远超原版 FUSE 的性能，*提升约 4 到 5 倍*，*充分发挥了 eBPF map 缓存路径 和 CSD 存算一体设备路径 的优势*。
+
+
+对于读写单位为大数据块的测试场景，原本 FUSE 的吞吐量本身达到了较高水平，而 eFuse 一方面无法一次存入大数据块至 eBPF map 中，另一方面需要在 eBPF 程序中进行多次数据拼接，导致总体性能有所下降。优化在大数据块场景下的读写性能将成为 eFuse 在之后的优化方向和挑战。
+
+
+在较大压力的测试场景下，*测试1*和 *测试2*的*读写操作的排队时延大幅下降*，相较原版 FUSE 下降约几十到几百倍不等，充分展现了 多核优化模块 和 负载监控和调度 在压力测试下的优化效果，*充分缓解了原版 FUSE 请求堆积的问题*。
+
+总体而言，通过多项测试可以看到 eFuse 在多个负载场景下显示出了极强的性能优势：
+
+- 在小文件和混合负载场景下，IOPS 能够增幅约 4到5 倍。
+- 吞吐量相比 FUSE 增长 2到5 倍。
+- 平均排队延迟大幅下降，有效解决了 FUSE 请求队列拥塞问题。
+- 平均处理延迟有显著降低，响应更快，更稳定。
+- 内核态/用户态切换次数降低约50%，节省开销。
+- 在多文件情况下，性能超越 EXT4 文件系统，显示出极大潜力。
+
+最终，eFuse 在针对 FUSE 文件系统性能瓶颈进行了精准优化后，不仅提升了性能，更大大扩展了 FUSE 在各种负载场景下的适用性。
+
+= 总结与展望
+
+eFuse 实现全部预期功能，包括对FUSE请求的绕过优化、环形管道设计等。通过对FUSE请求绕过、请求队列的优化，eFuse在多种负载场景下均表现出色，尤其在小文件和高并发场景下，性能提升显著。
+
+针对 *1.3: 行动项* 部分叙述的六大技术目标模块，完成情况如下：
+
+#figure(
+  table(
+    columns: (68pt,68pt, 285pt),
+    inset: 7pt,
+    stroke: 0.7pt,
+    align: horizon,
+    [*目标编号*], [*完成情况*], [*说明*],
+    [*1*], [100%],
     align(left)[
-      1. 完成对 FUSE 内核模块的扩展。
-      2. 后续可能随着需求变化，进一步扩展。
+      1. 在内核中设置eBPF程序挂载点。
+      2. 设计并实现eBPF helper函数，助于后续实现。
+      3. 完成项目框架内核态和用户态的协同开发。
     ],
-    [目标2：FUSE 元数据请求优化], 
-    [全部完成100%],
+    [*2*],[100%],
     align(left)[
-      1. 优化 inode、目录、权限、路径等相关操作。
-      2. 后续考虑对更多FUSE元数据请求设计eBPF绕过优化。
+      1. 通过eBPF在内核快速处理FUSE请求。
+      2. 优化 inode、目录、权限、路径等相关操作。
+      3. 对用户态文件系统作相关处理。
     ],
-    [目标3：FUSE I/O 请求的特殊优化], 
-    [全部完成100%],
+    [*3*],[100%],
     align(left)[
-      1. 支持直通/缓存路径，并实现自适应调度。
-      2. 读写性能提升 1.5\~3 倍。
-    ],
-    [目标4：基于内核修改的多核优化], 
-    [基本完成80%],
+      1. 针对文件I/O请求的绕过优化。
+      2. 对READ操作设计直通路径和map缓存路径。
+      3. 读写性能提升 2\~4 倍，平均延迟显著降低。
+    ],  
+    [*4*],[100%],
     align(left)[
       1. 为每个核心构建独立 ringbuf 管道。
-      2. 实现多核 CPU 环境的适配。
+      2. 实现多核环境的适配、高效的请求传输。
+      3. 在高负载工作场景下大幅减小请求的排队时延。
     ],
-    [目标5：负载监控与请求均衡], 
-    [进行中\
-    20%],
+    [*5*],[100%],
     align(left)[
-      1. 利用 eBPF 动态分析请求负载。
-      2. 根据 ringbuf 状态进行调度策略调整。
-    ]
-  ),
-  caption: "目标技术模块"
+      1. 动态分析请求负载并进行策略调整。
+      2. 相关功能可在内核实现或通过eBPF程序实现。
+    ],
+    
+    [*6*],[100%],
+    align(left)[
+      1. 实现设备端路径，在设备中完成FUSE请求。
+      2. 实现设备端和内核端的调度策略。
+    ],
+  )
 ) <tbl1>
 
 *目标1* 是所有后续目标的基础，是为了实现相对底层的eFuse核心功能的必要修改，修改内容也需要随着后续目标的实现而不断完善和扩展。
 
 *目标2* 已经有部分相关开源项目进行了类似的设计和实现，eFuse在此基础上进行了一定扩展和优化，希望实现尽可能覆盖绝大部分的FUSE元数据请求，提高统一性和全面性。
 
-*目标3* 是eFuse初赛阶段前半段的主要工作部分，区别与ExtFUSE等其他类似开源项目，尝试对更复杂的FUSE I/O请求进行优化，同时通过两条路径的设计，使系统能够在不同负载情况下都能维持较高的性能。
+*目标3* 是eFuse初赛阶段的主要工作部分，区别与ExtFUSE等其他类似开源项目，尝试对更复杂的FUSE I/O请求进行优化，同时通过两条路径的设计，使系统能够在不同负载情况下都能维持较高的性能。
 
 *目标4* 主要针对FUSE的请求拥塞现象进行优化，尝试修改内核驱动中FUSE的请求处理逻辑和存储结构，使其能够支持多核CPU环境下的高并发请求处理，提升整体性能。
 
-*目标5* 仍在进行中，构想是通过eBPF程序动态分析FUSE请求的负载情况，并根据当前的负载情况和请求队列状态，调整调度策略和请求处理方式，以实现更高效的请求处理。
+*目标5* 通过在内核中动态分析FUSE请求的负载情况，并根据当前的负载情况和请求队列状态，调整调度策略和请求处理方式，以实现更高效的请求处理。
 
-综合来看，eFuse在初赛阶段已经实现了绝大部分预期功能，在兼容并保留FUSE的可扩展性、便捷性等优势的情况下，大通过eBPF技术大幅提升其性能，并在多种负载场景下表现出色。后续工作将继续完善各个模块，进一步优化和扩展eFuse的功能。
+*目标6* 在完成前五个目标的的基础上，额外添加了一条设备路径，将部分计算处理下放至存算一体设备处完成，尝试适配新型存储环境。
+
+综合来看，eFuse在兼容并保留FUSE的可扩展性、便捷性等优势的情况下，通过eBPF技术大幅提升其性能，并在多种负载场景，尤其是以小文件为主的负载场景下表现出色，综合读写性能能够提升4到5倍，FUSE请求的排队时延显著下降。
 
 #pagebreak()
 
